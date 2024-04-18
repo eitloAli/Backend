@@ -1,10 +1,11 @@
 {
-  "name": "backend",
+  "name": "Mohammed Ali",
   "version": "1.0.0",
   "description": "First backend Project",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "dev": "node src/index.js"
   },
   "keywords": [
     "node",
