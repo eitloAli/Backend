@@ -10,3 +10,17 @@ const app = express()
 
 
 dbConnect()
+.then(() => {
+
+    app.on("error", (error) => {
+        console.log("ERR while connecting APP at Index.js Ali", error)
+        throw error
+    })
+
+    app.listen(process.env.PORT || 8000, () => {
+        console.log("Server s running at port : ", process.env.PORT);
+    })
+})
+.catch((err) => {
+    console.log("MONGO DB connection failed !!!", err);
+})
