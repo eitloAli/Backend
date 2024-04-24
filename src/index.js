@@ -5,7 +5,7 @@
 
 import express from 'express'
 import dbConnect from "./db/index.js";
-const app = express()
+import { app } from './app.js';
 
 
 
