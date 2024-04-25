@@ -3,7 +3,6 @@
 //     path : "./.env"
 // }) // dotenv config through package.json
 
-import express from 'express'
 import dbConnect from "./db/index.js";
 import { app } from './app.js';
 
