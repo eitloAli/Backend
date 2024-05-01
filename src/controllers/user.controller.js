@@ -4,10 +4,8 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
-const generateAccessAndRefresh = async (userId) => {
+const generateAccessAndRefresh = async (user) => {
   try {
-    console.log(userId);
-    const user = await User.findById(userId)
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
@@ -119,7 +117,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Password is Incorrect");
   }
 
-  const { accessToken, refreshToken } = await generateAccessAndRefresh(user._id);
+  const { accessToken, refreshToken } = await generateAccessAndRefresh(user);
 
   const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
