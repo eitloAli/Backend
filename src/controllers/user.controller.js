@@ -96,10 +96,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
+  
   // if([email, username, password].some(field => field.trim() === "")){
   //     throw new ApiError(400, "Login Credentials are Required it can't be empty")
   // } good practice but use the below method
-  if (!email) {
+  if (!email && !username) {
     throw new ApiError(400, "email or username is required");
   }
 
@@ -140,4 +141,31 @@ const loginUser = asyncHandler(async (req, res) => {
   )
 });
 
-export { registerUser, loginUser };
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user_id,
+    {
+      $set : {
+        refreshToken : undefined
+      }
+    },
+    {
+      new : true
+    }
+  );
+
+  const options = {
+    httpOnly : true,
+    secure : true
+  }
+  return res
+  .status(200)
+  .clearCookie("accessToken", options)
+  .clearCookie("refreshToken", options)
+  .json(
+    new ApiResponse(200, {}, "USer logged in Successfully")
+  )
+
+})
+
+export { registerUser, loginUser, logoutUser };
