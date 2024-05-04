@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
+import jwt from "jsonwebtoken"
 const generateAccessAndRefresh = async (user) => {
   try {
     const accessToken = user.generateAccessToken();
@@ -96,7 +97,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
-  
+
   // if([email, username, password].some(field => field.trim() === "")){
   //     throw new ApiError(400, "Login Credentials are Required it can't be empty")
   // } good practice but use the below method
@@ -120,7 +121,9 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { accessToken, refreshToken } = await generateAccessAndRefresh(user);
 
-  const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
 
   const options = {
     httpOnly: true,
@@ -128,44 +131,91 @@ const loginUser = asyncHandler(async (req, res) => {
   };
 
   return res
-  .status(200)
-  .cookie("accessToken", accessToken, options)
-  .cookie("refreshToken", refreshToken, options)
-  .json(
-      new ApiResponse(
-          200,
-          {
-            user : loggedInUser, accessToken, refreshToken
-          }
-      )
-  )
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(200, {
+        user: loggedInUser,
+        accessToken,
+        refreshToken,
+      })
+    );
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user_id,
     {
-      $set : {
-        refreshToken : undefined
-      }
+      $set: {
+        refreshToken: undefined,
+      },
     },
     {
-      new : true
+      new: true,
     }
   );
 
   const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "USer logged in Successfully"));
+});
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(400, "Unauthorized Request")
+  }
+
+  const decoded = jwt.verify(
+    incomingRefreshToken,
+    process.env.REFERESH_TOKEN_SECRET
+  )
+
+  const user = await User.findById(decoded._id)
+
+  if (!user) {
+    throw new ApiError(400, "Invalid token")
+  }
+
+  if (user.refreshToken !== incomingRefreshToken) {
+    throw new ApiError(401, "Refresh Token is invalid or expired")
+  }
+
+  const {accessToken, refreshToken} = await generateAccessAndRefresh(user)
+  
+  const options = {
     httpOnly : true,
     secure : true
   }
-  return res
-  .status(200)
-  .clearCookie("accessToken", options)
-  .clearCookie("refreshToken", options)
-  .json(
-    new ApiResponse(200, {}, "USer logged in Successfully")
-  )
 
+  res.status(200)
+  .cookie("accessToken", accessToken, options)
+  .cookie("refreshToken", refreshToken, options)
+  .json(
+    new ApiResponse(200, {accessToken, refreshToken}, "Access Token refresh successfully")
+  )
+  
 })
 
-export { registerUser, loginUser, logoutUser };
+const updateUserDetails = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+});
+
+const getCurrentUser = asyncHandler()
+
+export { 
+  registerUser,
+  loginUser,
+  logoutUser,
+  updateUserDetails,
+  refreshAccessToken
+};
