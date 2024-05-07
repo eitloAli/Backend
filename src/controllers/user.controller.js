@@ -4,7 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 const generateAccessAndRefresh = async (user) => {
   try {
     const accessToken = user.generateAccessToken();
@@ -168,54 +168,88 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
 
   if (!incomingRefreshToken) {
-    throw new ApiError(400, "Unauthorized Request")
+    throw new ApiError(400, "Unauthorized Request");
   }
 
   const decoded = jwt.verify(
     incomingRefreshToken,
     process.env.REFERESH_TOKEN_SECRET
-  )
+  );
 
-  const user = await User.findById(decoded._id)
+  const user = await User.findById(decoded._id);
 
   if (!user) {
-    throw new ApiError(400, "Invalid token")
+    throw new ApiError(400, "Invalid token");
   }
 
   if (user.refreshToken !== incomingRefreshToken) {
-    throw new ApiError(401, "Refresh Token is invalid or expired")
+    throw new ApiError(401, "Refresh Token is invalid or expired");
   }
 
-  const {accessToken, refreshToken} = await generateAccessAndRefresh(user)
-  
+  const { accessToken, refreshToken } = await generateAccessAndRefresh(user);
+
   const options = {
-    httpOnly : true,
-    secure : true
-  }
+    httpOnly: true,
+    secure: true,
+  };
 
-  res.status(200)
-  .cookie("accessToken", accessToken, options)
-  .cookie("refreshToken", refreshToken, options)
-  .json(
-    new ApiResponse(200, {accessToken, refreshToken}, "Access Token refresh successfully")
-  )
-  
-})
-
-const updateUserDetails = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-
+  res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { accessToken, refreshToken },
+        "Access Token refresh successfully"
+      )
+    );
 });
 
-const getCurrentUser = asyncHandler()
+const updateUserDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
 
-export { 
+  if (!fullName && !email) {
+    throw new ApiError(400, "All field are required");
+  }
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw new ApiError(400, "User does not exist");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(user._id, {
+    $set: {
+      fullName: fullName,
+      email: email,
+    },
+  });
+
+  return res.status(200)
+  .json(
+    new ApiResponse(
+      200,
+      {},
+      "FullName and email has been updated"
+    )
+  )
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current user Fetched Successfully"));
+});
+
+export {
   registerUser,
   loginUser,
   logoutUser,
+  refreshAccessToken,
   updateUserDetails,
-  refreshAccessToken
+  getCurrentUser,
 };
