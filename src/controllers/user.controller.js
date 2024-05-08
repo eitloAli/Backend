@@ -229,20 +229,49 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     },
   });
 
-  return res.status(200)
-  .json(
-    new ApiResponse(
-      200,
-      {},
-      "FullName and email has been updated"
-    )
-  )
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "FullName and email has been updated"));
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, req.user, "Current user Fetched Successfully"));
+});
+
+const updateCurrentPassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword && !newPassword) {
+    throw new ApiError(400, "current password or new password is missing");
+  } else if (currentPassword === newPassword) {
+    throw new ApiError(
+      401,
+      "your new password must be unique from current password"
+    );
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw new ApiError(400, "Something went wrong while finding your user");
+  }
+
+  const isPasswordCorrect = user.isPasswordCorrect(currentPassword);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "your old password is incorrect");
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, req.user, "password has been changed successfully")
+    );
 });
 
 export {
@@ -252,4 +281,5 @@ export {
   refreshAccessToken,
   updateUserDetails,
   getCurrentUser,
+  updateCurrentPassword,
 };
