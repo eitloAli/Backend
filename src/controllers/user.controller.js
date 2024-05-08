@@ -243,13 +243,10 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 const updateCurrentPassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
-  if (!currentPassword && !newPassword) {
-    throw new ApiError(400, "current password or new password is missing");
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, "Current and new password is required");
   } else if (currentPassword === newPassword) {
-    throw new ApiError(
-      401,
-      "your new password must be unique from current password"
-    );
+    throw new ApiError(401,"new password must be different from current password");
   }
 
   const user = await User.findById(req.user._id);
@@ -258,7 +255,7 @@ const updateCurrentPassword = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Something went wrong while finding your user");
   }
 
-  const isPasswordCorrect = user.isPasswordCorrect(currentPassword);
+  const isPasswordCorrect = await user.isPasswordCorrect(currentPassword);
 
   if (!isPasswordCorrect) {
     throw new ApiError(400, "your old password is incorrect");
