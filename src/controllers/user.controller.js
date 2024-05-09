@@ -1,7 +1,10 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  deleteCloudinaryImage,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
@@ -210,7 +213,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     );
 });
 
-const updateUserDetails = asyncHandler(async (req, res) => {
+const updateAccountDetails = asyncHandler(async (req, res) => {
   const { fullName, email } = req.body;
 
   if (!fullName && !email) {
@@ -246,7 +249,10 @@ const updateCurrentPassword = asyncHandler(async (req, res) => {
   if (!currentPassword || !newPassword) {
     throw new ApiError(400, "Current and new password is required");
   } else if (currentPassword === newPassword) {
-    throw new ApiError(401,"new password must be different from current password");
+    throw new ApiError(
+      401,
+      "new password must be different from current password"
+    );
   }
 
   const user = await User.findById(req.user._id);
@@ -271,12 +277,86 @@ const updateCurrentPassword = asyncHandler(async (req, res) => {
     );
 });
 
+const updateAvatarImage = asyncHandler(async (req, res) => {
+
+    if (!req.file?.path) {
+      throw new ApiError(400,"Avatar image is required")
+    }
+
+    const uploadedAvatar = await  uploadOnCloudinary(req.file?.path);
+    await deleteCloudinaryImage(req.user.avatar);
+  
+    const userUpdated = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set : {
+          avatar : uploadedAvatar.url
+        }
+      },
+      {
+        new : true
+      }
+    ).select("-password -refreshToken")
+    
+    console.log("avatar image uploaded");
+    return res
+    .status(200)
+    .json(
+    new ApiResponse(200, userUpdated, "avatar image successfully uploaded")
+  )
+});
+
+
+const updateCoverImage = asyncHandler(async (req, res) => {
+
+  if (!req.file?.path) {
+    throw new ApiError(400,"Cover image is required")
+  }
+
+  const uploadedCoverImage = await  uploadOnCloudinary(req.file?.path);
+  await deleteCloudinaryImage(req.user.cover);
+
+  const userUpdated = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set : {
+        coverImage : uploadedCoverImage.url
+      }
+    },
+    {
+      new : true
+    }
+  ).select("-password -refreshToken")
+  
+  console.log("cover image uploaded");
+  return res
+  .status(200)
+  .json(
+  new ApiResponse(200, userUpdated, "Cover image successfully uploaded")
+)
+});
+
+const cloud = asyncHandler(async (req, res) => {
+  const URL =
+    "https://res.cloudinary.com/eitlo-ali/image/upload/v1714494365/eopaibq8seziyiglubna.avif";
+  const deletedImage = await deleteCloudinaryImage(URL);
+  const { imageUrl } = deletedImage;
+  console.log(imageUrl);
+
+  if (deletedImage.deleted[imageUrl] === "not_found") {
+    throw new ApiError(500, "image not found");
+  }
+  return res.json(deletedImage);
+}); // testing
 export {
   registerUser,
   loginUser,
   logoutUser,
   refreshAccessToken,
-  updateUserDetails,
+  updateAccountDetails,
   getCurrentUser,
   updateCurrentPassword,
+  updateAvatarImage,
+  updateCoverImage,
+  cloud,
 };
