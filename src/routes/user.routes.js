@@ -10,6 +10,8 @@ import {
   cloud,
   updateAvatarImage,
   updateCoverImage,
+  getUserChanneDetails,
+  subscribe,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -40,5 +42,6 @@ router.route("/update-current-password").post(verifyJWT, updateCurrentPassword);
 router.route("/test").get(cloud)
 router.route("/update-avatar-image").post(verifyJWT, upload.single("avatar"), updateAvatarImage)
 router.route("/update-cover-image").post(verifyJWT, upload.single("cover"), updateCoverImage)
-
+router.route("/c/:username").post(verifyJWT, getUserChanneDetails)
+router.route("/subscribe").post(verifyJWT, subscribe)
 export default router;

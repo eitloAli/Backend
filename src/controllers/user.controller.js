@@ -403,7 +403,15 @@ const getUserChanneDetails = asyncHandler(async (req, res) => {
       }
     }
   ])
+
+  if (!channel?.length) {
+    throw new ApiError(404, "channel does not exist")
+  }
   console.log(channel);
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, channel, "channel fetched successfully"))
 })
 // testing to sunscribe a user
 const subscribe = asyncHandler(async (req,res) => {
