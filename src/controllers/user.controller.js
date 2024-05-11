@@ -8,6 +8,7 @@ import {
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
+import { Subscription } from "../models/subscription.model.js";
 const generateAccessAndRefresh = async (user) => {
   try {
     const accessToken = user.generateAccessToken();
@@ -336,6 +337,83 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 )
 });
 
+const getUserChanneDetails = asyncHandler(async (req, res) => {
+  const {username} = req.params
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "no user found")
+  }
+  const channel = await User.aggregate([
+    {
+      $match : {
+        username : username.toLowerCase()
+      }
+    },
+
+    {
+      $lookup : {
+        from : "subscriptions",
+        localField : "_id",
+        foreignField : "channel",
+        as : "subscribers"
+      }
+    },
+
+    {
+      $lookup : {
+        from : "subscriptions",
+        localField : "_id",
+        foreignField : "subscriber",
+        as : "subscribeTo"
+      }
+    },
+
+    {
+      $addFields : {
+        subscribersCount :
+        {
+          $size : "$subscribers"
+        },
+        subscribedChannelsCount : 
+        {
+          $size : "$subscribeTo"
+        },
+        isSubscribed : 
+        {
+          $cond : {
+            if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+            then : true,
+            else : false
+          }
+        }
+      }
+    },
+
+    {
+      $project : {
+        fullName : 1,
+        username : 1,
+        subscribersCount : 1,
+        subscribedChannelsCount : 1,
+        isSubscribed : 1,
+        avatar : 1,
+        coverImage : 1,
+        email : 1,
+        createdAt : 1
+      }
+    }
+  ])
+  console.log(channel);
+})
+// testing to sunscribe a user
+const subscribe = asyncHandler(async (req,res) => {
+  const sub = await Subscription.create({
+    subscriber : req.user._id,
+    channel : req.user._id
+  })
+  return res.json(sub)
+})
+
 const cloud = asyncHandler(async (req, res) => {
   const URL =
     "https://res.cloudinary.com/eitlo-ali/image/upload/v1714494365/eopaibq8seziyiglubna.avif";
@@ -358,5 +436,7 @@ export {
   updateCurrentPassword,
   updateAvatarImage,
   updateCoverImage,
+  getUserChanneDetails,
+  subscribe,
   cloud,
 };
