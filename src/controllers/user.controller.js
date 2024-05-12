@@ -36,7 +36,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // check for user creating
     // return user response
     const { fullName, email, password, username } = req.body;
-
+    console.log(req.body.fullName);
     if (
         [fullName, email, password, username].some(
             (field) => field.trim() === ""
@@ -496,6 +496,10 @@ const cloud = asyncHandler(async (req, res) => {
     }
     return res.json(deletedImage);
 }); // testing
+
+const test = asyncHandler(async (req,res) => {
+  console.log(req.body)
+})
 export {
     registerUser,
     loginUser,
@@ -510,4 +514,5 @@ export {
     getWatchedHistory,
     subscribe,
     cloud,
+    test
 };

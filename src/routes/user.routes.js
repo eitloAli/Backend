@@ -13,6 +13,7 @@ import {
   getUserChanneDetails,
   subscribe,
   getWatchedHistory,
+  test,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -49,7 +50,7 @@ router.route("/c/:username").get(verifyJWT, getUserChanneDetails)
 router.route("/user-watch-history").post(verifyJWT, getWatchedHistory)
 
 
-router.route("/test").get(cloud)
+router.route("/test").post(test)
 router.route("/subscribe").post(verifyJWT, subscribe)
 
 export default router;
