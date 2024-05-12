@@ -9,6 +9,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { Subscription } from "../models/subscription.model.js";
+import mongoose from "mongoose";
 const generateAccessAndRefresh = async (user) => {
     try {
         const accessToken = user.generateAccessToken();
@@ -419,8 +420,61 @@ const getUserChanneDetails = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(new ApiResponse(200, channel, "channel fetched successfully"));
+        .json(new ApiResponse(200, channel[0], "channel fetched successfully"));
 });
+
+const getWatchedHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+      {
+        $match: {
+          _id : req.user_id
+        }
+      },
+      {
+        $lookup : {
+          from : "videos",
+          localField : "watchedHistory",
+          foreignField : "_id",
+          as : "watchHistory",
+          pipeline : [
+            {
+                $lookup : {
+                    from : "User",
+                    localField : "owner",
+                    foreignField : "_id",
+                    as : "owner",
+                    pipeline : [
+                        {
+                            $project : {
+                                fullName : 1,
+                                username : 1,
+                                avatar : 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields : {
+                    owner : {
+                        $first : "$owner"
+                    }
+                }
+            }
+          ]
+        }
+      }
+    ])
+    res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, "User watched history fetched successfully")
+    )
+});
+
+
+
+
 // testing to sunscribe a user
 const subscribe = asyncHandler(async (req, res) => {
     const sub = await Subscription.create({
@@ -453,6 +507,7 @@ export {
     updateAvatarImage,
     updateCoverImage,
     getUserChanneDetails,
+    getWatchedHistory,
     subscribe,
     cloud,
 };
