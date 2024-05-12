@@ -12,6 +12,7 @@ import {
   updateCoverImage,
   getUserChanneDetails,
   subscribe,
+  getWatchedHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -44,4 +45,5 @@ router.route("/update-avatar-image").post(verifyJWT, upload.single("avatar"), up
 router.route("/update-cover-image").post(verifyJWT, upload.single("cover"), updateCoverImage)
 router.route("/c/:username").post(verifyJWT, getUserChanneDetails)
 router.route("/subscribe").post(verifyJWT, subscribe)
+router.route("/user-watch-history").post(verifyJWT, getWatchedHistory)
 export default router;
