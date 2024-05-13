@@ -36,43 +36,65 @@ const registerUser = asyncHandler(async (req, res) => {
     // check for user creating
     // return user response
     const { fullName, email, password, username } = req.body;
-    console.log(req.body.fullName);
+    function deleteTempImg() {
+        try {
+            fs.unlinkSync(req.files.avatar[0].path ?? "");
+        } catch {}
+        try {
+            fs.unlinkSync(req.files.coverImage[0].path ?? "");
+        } catch  {}
+    }
     if (
         [fullName, email, password, username].some(
-            (field) => field.trim() === ""
+            (field) => (field?.trim() || "") === ""
         )
     ) {
-        throw new ApiError(400, " All fields are required");
+        deleteTempImg()
+        throw new ApiError(400, "All fields are required");
     }
-
+    // below code could be used
+    // if (!fullName) {
+    //     deleteTempImg()
+    //     throw new ApiError(400, "FullName is required");
+    // } else if (!email) {
+    //     deleteTempImg()
+    //     throw new ApiError(400, "Email is required");
+    // } else if (!password) {
+    //     deleteTempImg()
+    //     throw new ApiError(400, "Password is required");
+    // } else if (!username) {
+    //     deleteTempImg()
+    //     throw new ApiError(400, "username is required");
+    // }
+    // const existedUser = await User.findOne({
+    //     $or: [{ username }, { email }],
+    // });
     const existedUser = await User.findOne({
         $or: [{ username }, { email }],
     });
-
     if (existedUser) {
-        try {
-            fs.unlinkSync(req.files.avatar[0].path);
-            fs.unlinkSync(req.files.coverImage[0].path ?? "");
-        } catch (error) {}
-
+        deleteTempImg();
         throw new ApiError(400, "User or email is already exist");
     }
-
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    if (!avatarLocalPath) {
+    let avatarLocalImage;
+    try {
+        avatarLocalImage = req.files.avatar[0].path;
+    } catch  {
+        avatarLocalImage = "";
+    }
+    if (!avatarLocalImage) {
+        deleteTempImg()
         throw new ApiError(400, "Avatar Image is required");
     }
 
     let coverImageLocalPath;
-    if (
-        req.files &&
-        Array.isArray(req.files.coverImage) &&
-        req.files.coverImage.length > 0
-    ) {
-        coverImageLocalPath = req.files.coverImage[0].path;
+    try {
+        coverImageLocalPath = req.files.coverImage[0].path
+    } catch {
+        coverImageLocalPath = ""
     }
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    const avatar = await uploadOnCloudinary(avatarLocalImage);
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
     if (!avatar) {
@@ -425,55 +447,50 @@ const getUserChanneDetails = asyncHandler(async (req, res) => {
 
 const getWatchedHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
-      {
-        $match: {
-          _id : req.user_id
-        }
-      },
-      {
-        $lookup : {
-          from : "videos",
-          localField : "watchedHistory",
-          foreignField : "_id",
-          as : "watchHistory",
-          pipeline : [
-            {
-                $lookup : {
-                    from : "User",
-                    localField : "owner",
-                    foreignField : "_id",
-                    as : "owner",
-                    pipeline : [
-                        {
-                            $project : {
-                                fullName : 1,
-                                username : 1,
-                                avatar : 1
-                            }
-                        }
-                    ]
-                }
+        {
+            $match: {
+                _id: req.user_id,
             },
-            {
-                $addFields : {
-                    owner : {
-                        $first : "$owner"
-                    }
-                }
-            }
-          ]
-        }
-      }
-    ])
-    res
-    .status(200)
-    .json(
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchedHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "User",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1,
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner",
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+    ]);
+    res.status(200).json(
         new ApiResponse(200, user, "User watched history fetched successfully")
-    )
+    );
 });
-
-
-
 
 // testing to sunscribe a user
 const subscribe = asyncHandler(async (req, res) => {
@@ -497,9 +514,9 @@ const cloud = asyncHandler(async (req, res) => {
     return res.json(deletedImage);
 }); // testing
 
-const test = asyncHandler(async (req,res) => {
-  console.log(req.body)
-})
+const test = asyncHandler(async (req, res) => {
+    console.log(req.body);
+});
 export {
     registerUser,
     loginUser,
@@ -514,5 +531,5 @@ export {
     getWatchedHistory,
     subscribe,
     cloud,
-    test
+    test,
 };
