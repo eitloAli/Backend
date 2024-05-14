@@ -50,7 +50,7 @@ router.route("/c/:username").get(verifyJWT, getUserChanneDetails)
 router.route("/user-watch-history").post(verifyJWT, getWatchedHistory)
 
 
-router.route("/test").post(test)
 router.route("/subscribe").post(verifyJWT, subscribe)
+router.route("/test").post(test)
 
 export default router;

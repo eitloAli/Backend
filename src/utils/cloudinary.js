@@ -17,14 +17,12 @@ export const uploadOnCloudinary = async (localFilePath) => {
                 resource_type : "auto"
             }
         )
-        fs.unlinkSync(localFilePath || "")
 
         return response
         
     } catch (error) {
-        console.log("Error in UploadOnCloudinary", error)
-        fs.unlinkSync(localFilePath || "") // remove the locally saved filed as the upload operation got failed
-        return null
+        console.log("Error in UploadOnCloudinary", error) // remove the locally saved filed as the upload operation got failed
+        return null    
     }
 }
 

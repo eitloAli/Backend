@@ -9,7 +9,6 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { Subscription } from "../models/subscription.model.js";
-import mongoose from "mongoose";
 const generateAccessAndRefresh = async (user) => {
     try {
         const accessToken = user.generateAccessToken();
@@ -36,20 +35,21 @@ const registerUser = asyncHandler(async (req, res) => {
     // check for user creating
     // return user response
     const { fullName, email, password, username } = req.body;
+    console.log(req.body);
     function deleteTempImg() {
         try {
             fs.unlinkSync(req.files.avatar[0].path ?? "");
         } catch {}
         try {
             fs.unlinkSync(req.files.coverImage[0].path ?? "");
-        } catch  {}
+        } catch {}
     }
     if (
         [fullName, email, password, username].some(
             (field) => (field?.trim() || "") === ""
         )
     ) {
-        deleteTempImg()
+        deleteTempImg();
         throw new ApiError(400, "All fields are required");
     }
     // below code could be used
@@ -79,23 +79,24 @@ const registerUser = asyncHandler(async (req, res) => {
     let avatarLocalImage;
     try {
         avatarLocalImage = req.files.avatar[0].path;
-    } catch  {
+    } catch {
         avatarLocalImage = "";
     }
     if (!avatarLocalImage) {
-        deleteTempImg()
+        deleteTempImg();
         throw new ApiError(400, "Avatar Image is required");
     }
 
     let coverImageLocalPath;
     try {
-        coverImageLocalPath = req.files.coverImage[0].path
+        coverImageLocalPath = req.files.coverImage[0].path;
     } catch {
-        coverImageLocalPath = ""
+        coverImageLocalPath = "";
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalImage);
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    deleteTempImg();
 
     if (!avatar) {
         throw new ApiError(400, "avatar image is required");
@@ -178,11 +179,11 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-    await User.findByIdAndUpdate(
-        req.user_id,
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
         {
-            $set: {
-                refreshToken: undefined,
+            $unset: {
+                refreshToken: 1,
             },
         },
         {
@@ -198,7 +199,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         .status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, {}, "USer logged in Successfully"));
+        .json(new ApiResponse(200, {user}, "User logout Successfully"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -275,7 +276,6 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 const updateCurrentPassword = asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
-
     if (!currentPassword || !newPassword) {
         throw new ApiError(400, "Current and new password is required");
     } else if (currentPassword === newPassword) {
@@ -331,7 +331,6 @@ const updateAvatarImage = asyncHandler(async (req, res) => {
         }
     ).select("-password -refreshToken");
 
-    console.log("avatar image uploaded");
     return res
         .status(200)
         .json(
