@@ -17,9 +17,9 @@ import {
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-const router = Router();
+const userRouter  = Router();
 
-router.route("/register").post(
+userRouter.route("/register").post(
   upload.fields([
     {
       name: "avatar",
@@ -33,24 +33,24 @@ router.route("/register").post(
   registerUser
 );
 
-router.route("/login").post(loginUser);
-router.route("/refresh-access-token").post(refreshAccessToken);
+userRouter.route("/login").post(loginUser);
+userRouter.route("/refresh-access-token").post(refreshAccessToken);
 
 // secure routes
-router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/current-user").get(verifyJWT, getCurrentUser);
-router.route("/update-account-details").patch(verifyJWT, updateAccountDetails);
-router.route("/update-current-password").post(verifyJWT, updateCurrentPassword);
+userRouter.route("/logout").post(verifyJWT, logoutUser);
+userRouter.route("/current-user").get(verifyJWT, getCurrentUser);
+userRouter.route("/update-account-details").patch(verifyJWT, updateAccountDetails);
+userRouter.route("/update-current-password").post(verifyJWT, updateCurrentPassword);
 
-router.route("/update-avatar-image").patch(verifyJWT, upload.single("avatar"), updateAvatarImage)
-router.route("/update-cover-image").patch(verifyJWT, upload.single("cover"), updateCoverImage)
-
-
-router.route("/c/:username").get(verifyJWT, getUserChanneDetails)
-router.route("/user-watch-history").post(verifyJWT, getWatchedHistory)
+userRouter.route("/update-avatar-image").patch(verifyJWT, upload.single("avatar"), updateAvatarImage)
+userRouter.route("/update-cover-image").patch(verifyJWT, upload.single("cover"), updateCoverImage)
 
 
-router.route("/subscribe").post(verifyJWT, subscribe)
-router.route("/test").post(test)
+userRouter.route("/c/:username").get(verifyJWT, getUserChanneDetails)
+userRouter.route("/user-watch-history").post(verifyJWT, getWatchedHistory)
 
-export default router;
+
+userRouter.route("/subscribe").post(verifyJWT, subscribe)
+userRouter.route("/test").post(test)
+
+export default userRouter;
