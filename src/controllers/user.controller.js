@@ -347,7 +347,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Cover image is required");
     }
 
-    const uploadedCoverImage = await uploadOnCloudinary(req.file?.path);
+    const uploadedCoverImage = await uploadOnCloudinary(req?.file?.path);
     await deleteCloudinaryImage(req.user.cover);
 
     const userUpdated = await User.findByIdAndUpdate(

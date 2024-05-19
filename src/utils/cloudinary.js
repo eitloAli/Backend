@@ -22,7 +22,7 @@ export const uploadOnCloudinary = async (localFilePath) => {
         
     } catch (error) {
         console.log("Error in UploadOnCloudinary", error) // remove the locally saved filed as the upload operation got failed
-        return null    
+        return null
     }
 }
 

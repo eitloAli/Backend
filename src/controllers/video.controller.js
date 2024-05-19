@@ -10,7 +10,6 @@ import {
 
 import fs from "fs";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { json } from "express";
 
 const getAllvideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -87,6 +86,48 @@ const getVideoById = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const { title, description } = req.body;
+
+    if (!title?.trim() && !description?.trim()) {
+        fs.unlinkSync(req?.files?.thumbnail);
+        throw new ApiError(401, "Title and description is required");
+    }
+
+    const isVideoIdValid = isValidObjectId(videoId?.trim());
+
+    if (!isVideoIdValid) {
+        fs.unlinkSync(req?.files?.thumbnail);
+        throw new ApiError(404, "Video id is not valid");
+    }
+
+    const existedVideo = await Video.findById(videoId);
+
+    if (!existedVideo) {
+        fs.unlinkSync(req?.files?.thumbnail);
+        throw new ApiError(404, "No Video found in database");
+    }
+
+    const thumbnail = await uploadOnCloudinary(req?.file?.thumbnail || "");
+
+    await deleteCloudinaryImage(existedVideo?.thumbnail || "");
+    fs.unlinkSync(req?.files?.thumbnail);
+
+    const updatedUserVideo = await Video.findByIdAndUpdate(videoId, {
+        $set: {
+            title,
+            description: description || existedVideo.description,
+            thumbnail: thumbnail?.url || "",
+        },
+    });
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                updatedUserVideo,
+                "Video has been updated"
+            )
+        );
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -113,16 +154,25 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     const video = await Video.findById(videoId);
 
     if (!video) {
-        throw new ApiError(404, "No video found for changing the Publish status")
+        throw new ApiError(
+            404,
+            "No video found for changing the Publish status"
+        );
     }
 
-    video.isPublished = !video.isPublished
-    
-    const statusUpdated = await video.save()
-    
+    video.isPublished = !video.isPublished;
+
+    const statusUpdated = await video.save({ validateBeforeSave: false });
+
     return res
         .status(200)
-        .json(new ApiResponse(200, statusUpdated, "Publish status has been updated"))
+        .json(
+            new ApiResponse(
+                200,
+                statusUpdated,
+                "Publish status has been updated"
+            )
+        );
 });
 
 export {
