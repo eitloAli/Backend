@@ -16,21 +16,30 @@ const getAllvideos = asyncHandler(async (req, res) => {
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
+    function deleteFiles() {
+        try {
+            fs.unlinkSync(req.files.videoFile[0].path ?? "");
+        } catch {}
+        try {
+            fs.unlinkSync(req.files.thumbnail[0].path ?? "");
+        } catch {}
+    }
+
     const { title, description } = req.body;
+
     if (!title) {
-        fs.unlinkSync(req?.files?.videoFile[0]?.path ?? "");
-        fs.unlinkSync(req?.files?.thumbnail[0]?.path ?? "");
+        deleteFiles()
         throw new ApiError(400, "Title is required");
     }
 
     if (!req?.files?.videoFile) {
-        fs.unlinkSync(req?.files?.thumbnail[0]?.path ?? "");
+        deleteFiles()
         throw new ApiError(400, "Video is required");
     }
 
     const validOwner = isValidObjectId(req?.user._id);
-
     if (!validOwner) {
+        deleteFiles()
         throw new ApiError(400, "you are not authorized to upload this video");
     }
 
@@ -38,21 +47,22 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const uploadedThumbnail = await uploadOnCloudinary(
         req.files.thumbnail[0].path
     );
+    
+    console.log(uploadedVideo);
 
-    fs.unlinkSync(req?.files?.videoFile[0]?.path ?? "");
-    fs.unlinkSync(req?.files?.thumbnail[0]?.path ?? "");
+    deleteFiles()
 
     const video = await Video.create({
         videoFile: uploadedVideo?.url || "URL not found",
         thumbnail: uploadedThumbnail?.url || "URL not found",
         title,
         description,
-        duration: uploadedVideo?.duration || 404,
+        duration: uploadedVideo?.duration.toFixed(2) || 0,
         owner: req.user._id,
     });
 
     console.log(video);
-
+    console.log(55);
     return res
         .status(200)
         .json(
@@ -121,13 +131,7 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                updatedUserVideo,
-                "Video has been updated"
-            )
-        );
+        .json(new ApiResponse(200, updatedUserVideo, "Video has been updated"));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -175,7 +179,13 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         );
 });
 
+const test = asyncHandler(async (req, res) => {
+    const uploadedVideo = await uploadOnCloudinary(req.files.videoFile[0].path);
+    console.log(uploadedVideo);
+    return res.json(uploadedVideo)
+});
 export {
+    test,
     getAllvideos,
     publishAVideo,
     getVideoById,
