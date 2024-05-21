@@ -48,15 +48,14 @@ const publishAVideo = asyncHandler(async (req, res) => {
         req.files.thumbnail[0].path
     );
     
-    console.log(uploadedVideo);
 
     deleteFiles()
 
     const video = await Video.create({
         videoFile: uploadedVideo?.url || "URL not found",
         thumbnail: uploadedThumbnail?.url || "URL not found",
-        title,
-        description,
+        title : title || " ",
+        description : description || " ",
         duration: uploadedVideo?.duration.toFixed(2) || 0,
         owner: req.user._id,
     });
@@ -97,29 +96,36 @@ const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const { title, description } = req.body;
 
-    if (!title?.trim() && !description?.trim()) {
-        fs.unlinkSync(req?.files?.thumbnail);
+    function deleteFiles() {
+        try {
+            fs.unlinkSync(req?.files?.thumbnail || "");
+        } catch {}
+    }
+
+    if (!title?.trim() || !description?.trim()) {
+        deleteFiles()
         throw new ApiError(401, "Title and description is required");
     }
 
     const isVideoIdValid = isValidObjectId(videoId?.trim());
 
     if (!isVideoIdValid) {
-        fs.unlinkSync(req?.files?.thumbnail);
+        deleteFiles()
         throw new ApiError(404, "Video id is not valid");
     }
 
     const existedVideo = await Video.findById(videoId);
 
     if (!existedVideo) {
-        fs.unlinkSync(req?.files?.thumbnail);
+        deleteFiles()
         throw new ApiError(404, "No Video found in database");
     }
 
     const thumbnail = await uploadOnCloudinary(req?.file?.thumbnail || "");
 
     await deleteCloudinaryImage(existedVideo?.thumbnail || "");
-    fs.unlinkSync(req?.files?.thumbnail);
+    
+    deleteFiles()
 
     const updatedUserVideo = await Video.findByIdAndUpdate(videoId, {
         $set: {
@@ -127,7 +133,9 @@ const updateVideo = asyncHandler(async (req, res) => {
             description: description || existedVideo.description,
             thumbnail: thumbnail?.url || "",
         },
-    });
+    },
+    {new : true}
+);
 
     return res
         .status(200)
@@ -180,9 +188,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 });
 
 const test = asyncHandler(async (req, res) => {
-    const uploadedVideo = await uploadOnCloudinary(req.files.videoFile[0].path);
-    console.log(uploadedVideo);
-    return res.json(uploadedVideo)
+    console.log(isValidObjectId("664caf2a1f6aba5d6af08073"));
 });
 export {
     test,
