@@ -37,31 +37,32 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video is required");
     }
 
-    const validOwner = isValidObjectId(req?.user._id);
-    if (!validOwner) {
+
+    if (!isValidObjectId(req?.user._id)) {
         deleteFiles()
         throw new ApiError(400, "you are not authorized to upload this video");
     }
 
     const uploadedVideo = await uploadOnCloudinary(req.files.videoFile[0].path);
-    const uploadedThumbnail = await uploadOnCloudinary(
-        req.files.thumbnail[0].path
-    );
+
+    if (uploadedVideo === "file path is not available") {
+        deleteFiles()
+        throw new ApiError(500, "somethin went wrong while uploading video", uploadedVideo)
+    }
+    const uploadedThumbnail = await uploadOnCloudinary(req?.files?.thumbnail?.[0]?.path || "");
     
 
     deleteFiles()
 
     const video = await Video.create({
         videoFile: uploadedVideo?.url || "URL not found",
-        thumbnail: uploadedThumbnail?.url || "URL not found",
+        thumbnail: uploadedThumbnail?.url || uploadedThumbnail || " ",
         title : title || " ",
         description : description || " ",
         duration: uploadedVideo?.duration.toFixed(2) || 0,
         owner: req.user._id,
     });
 
-    console.log(video);
-    console.log(55);
     return res
         .status(200)
         .json(
