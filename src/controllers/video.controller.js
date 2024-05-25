@@ -12,88 +12,83 @@ import fs from "fs";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getAllvideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy = -1, sortType, userId } = req.query;
+    const {
+        page = 1,
+        limit = 10,
+        query,
+        sortBy = -1,
+        sortType,
+        userId,
+    } = req.query;
 
     if (!query) {
-        throw new ApiError(400, "search query is required in order to perform searching videos")
+        throw new ApiError(
+            400,
+            "search query is required in order to perform searching videos"
+        );
+    }
+    const paginateOption = {
+        page,
+        limit,
+    };
+    const video = await Video.aggregate([
+        {
+            $search: {
+                index: "title",
+                text: {
+                    query: `${query}`,
+                    path: "title",
+                },
+            },
+        },
+
+        {
+            $match: {
+                isPublished: true,
+            },
+        },
+
+        {
+            $limit: Number(limit),
+        },
+
+        {
+            $sort: {
+                createdAt: Number(sortBy),
+            },
+        },
+
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                        },
+                    },
+                ],
+            },
+        },
+
+        {
+            $addFields: {
+                owner: {
+                    $first: "$owner",
+                },
+            },
+        },
+    ]);
+    const allVideo = await Video.aggregatePaginate(video, paginateOption);
+
+    if (!allVideo) {
+        throw new ApiError(404, "No video found based on your query");
     }
 
-    const allVideo = await Video.aggregate([
-        {
-          $search: {
-            index: 'title',
-            text: {
-              query: `${query}`,
-              path: 'title'
-            }
-          }
-        },
-      
-        {
-          $match : {
-            isPublished : true
-          }
-        },
-      
-        {
-          $limit : limit
-        },
-      
-        {
-          $sort : {
-            createdAt : Number(sortBy)
-          }
-        },
-      
-        {
-          $lookup: {
-            from: "users",
-            localField: "owner",
-            foreignField: "_id",
-            as: "owner",
-            pipeline : [{
-              $project : {
-                username : 1
-              }
-            }]
-          }
-        },
-      
-        {
-          $addFields: {
-            owner: {
-              $first : "$owner"
-            }
-          }
-        },
-      
-       {
-              $project : {
-              title : 1,
-              description : 1,
-              videoFile : 1,
-              thumbnail : 1,
-          views : 1,
-          owner : 1,
-          _id : 1,
-          createdAt : 1,  
-          }
-      },
-      
-        {
-          $group: {
-            _id: null,
-            document : {$push  : "$$ROOT"}
-          }
-        }
-      ]);
-
-      if (!allVideo) {
-        throw new ApiError(404, "No video found based on your query")
-      }
-
-
-      return res
+    return res
         .status(200)
         .json(
             new ApiResponse(
@@ -101,7 +96,7 @@ const getAllvideos = asyncHandler(async (req, res) => {
                 allVideo,
                 "all video has been fetched successfully"
             )
-        )
+        );
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {

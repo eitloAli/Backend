@@ -6,7 +6,7 @@ const videoRouter = Router()
 videoRouter.route("/test").get(test)
 videoRouter.use(verifyJWT)
 videoRouter.route("/")
-    .get((req,res) => res.send("everything fine "))
+    .get(getAllvideos)
     .post(
         upload.fields(
             [
