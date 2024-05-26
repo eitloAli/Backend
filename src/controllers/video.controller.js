@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose, { Mongoose, isValidObjectId } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -185,18 +185,33 @@ const getVideoById = asyncHandler(async (req, res) => {
         {
             $set : {
                 owner : {$first : "$owner"}
+            },
+        },
+        {
+            $set : {
+                owner : "$owner.username"
+            }
+        },
+        {
+            $project : {
+                videoFile : 1,
+                thumbnail : 1,
+                title : 1,
+                description : 1,
+                duration : 1,
+                views : 1,
+                owner : 1,
+                createdAt : 1
             }
         }
 
-
     ]);
-    console.log(video);
-    if (!video) {
+    if (video?.length > 0) {
         throw new ApiError(404, "No video Found in database");
     }
 
     res.status(200).json(
-        new ApiResponse(200, video, "Video successfully fetched")
+        new ApiResponse(200, video[0], "Video successfully fetched")
     );
 });
 
@@ -297,11 +312,11 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         );
 });
 
-const test = asyncHandler(async (req, res) => {
-    console.log(isValidObjectId("664caf2a1f6aba5d6af08073"));
-});
+// const test = asyncHandler(async (req, res) => {
+//     console.log(isValidObjectId("664caf2a1f6aba5d6af08073"));
+// });
 export {
-    test,
+    // test,
     getAllvideos,
     publishAVideo,
     getVideoById,
