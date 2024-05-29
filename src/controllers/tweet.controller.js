@@ -50,6 +50,33 @@ const getAllUserTweets = asyncHandler(async (req, res) => {
             },
         },
         {
+            $lookup : {
+                from : "Likes",
+                localField : "_id",
+                foreignField : "tweet",
+                as : "like",
+                pipeline : [
+                    {
+                        $addFields : {
+                            tweetLikes : {$count : "$likes"}
+                        },
+                        $project : {
+                            tweetLikes : 1,
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $set : {
+                like : {$first : "$like"}
+            },
+            $set : {
+                likes : "$like.tweetLikes"
+            }
+        },
+
+        {
             $sort: {
                 createdAt: -1,
             },
@@ -58,6 +85,7 @@ const getAllUserTweets = asyncHandler(async (req, res) => {
             $project: {
                 tweet: 1,
                 owner: 1,
+                likes : 1
             },
         },
     ]);
