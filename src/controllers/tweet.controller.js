@@ -35,7 +35,7 @@ const createTweet = asyncHandler(async (req, res) => {
         );
 });
 
-const getAllUserTweets = asyncHandler(async (req, res) => {
+const getUserTweets = asyncHandler(async (req, res) => {
     if (!isValidObjectId(req?.user?._id)) {
         throw new ApiError(
             400,
@@ -58,7 +58,7 @@ const getAllUserTweets = asyncHandler(async (req, res) => {
                 pipeline : [
                     {
                         $addFields : {
-                            tweetLikes : {$count : "$likes"}
+                            tweetLikes : {$cout : "$likes"}
                         },
                         $project : {
                             tweetLikes : 1,
@@ -175,4 +175,4 @@ const deleteTweet = asyncHandler(async (req, res) => {
             )
         );
 });
-export { createTweet, getAllUserTweets, updateTweet, deleteTweet };
+export { createTweet, getUserTweets, updateTweet, deleteTweet };

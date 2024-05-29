@@ -312,11 +312,24 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         );
 });
 
-// const test = asyncHandler(async (req, res) => {
-//     console.log(isValidObjectId("664caf2a1f6aba5d6af08073"));
-// });
+const test = asyncHandler(async (req, res) => {
+    const test = await Video.aggregate([
+        {
+            $match: {
+              owner : new mongoose.Types.ObjectId('66312ac70c286f86402d3f0d')
+            }
+        },
+        {
+            $sort : {createdAt : -1}
+        }
+    ])
+    if (!test?.length > 0) {
+        throw new ApiError(400, "something went wrong")
+    }
+    res.json(test)
+});
 export {
-    // test,
+    test,
     getAllvideos,
     publishAVideo,
     getVideoById,
