@@ -5,13 +5,13 @@ const tweetSchema = new Schema(
         owner : {
             type : Schema.Types.ObjectId,
             ref : "User",
-            required : [true, "tweet creator is requried"]
+            required : [true, "Owner User Id is required"]
         },
         tweet : {
             Type : String,
-            required : [true, "tweet owner is required"]
+            required : [true, "tweet content is required"]
         },
-    },
+    }, 
     {
         timestamps : true
     }
