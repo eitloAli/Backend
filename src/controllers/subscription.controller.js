@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { subscribe } from "./user.controller.js";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
@@ -81,6 +82,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                     {
                         $project: {
                             username: 1,
+                            avatar : 1
                         },
                     },
                 ],
@@ -91,6 +93,14 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                 subscribed: { $first: "$subscribed" },
             },
         },
+        {
+            $project : {
+                subscriber : 1,
+                channel : 1,
+                subscribed : 1,
+                _id : 0
+            }
+        }
     ]);
 
     if (!subscriberList?.length > 0) {
@@ -137,7 +147,8 @@ const getSubscribedChannel = asyncHandler(async (req, res) => {
                     pipeline : [
                         {
                             $project : {
-                                username : 1
+                                username : 1,
+                                avatar : 1
                             }
                         }
                     ]
