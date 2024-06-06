@@ -4,20 +4,22 @@ const playlistSchema = new Schema(
     {
         name : {
             type : String,
-            required : true
+            required : [true, "playlist name is required"]
         },
         description : {
             type : String,
-            required : true
+            required : [true, "playlist description is required"]
         },
         owner : {
             type : Schema.Types.ObjectId,
-            ref : "User"
+            ref : "User",
+            required : [true, "playlist Owner is required"]
         },
         videos : [
             {
                 type : Schema.Types.ObjectId,
-                ref : "Video"
+                ref : "Video",
+                required : [true, "Video id is required to add video in playlist"]
             }
         ]
     },
