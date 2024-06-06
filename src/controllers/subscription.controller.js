@@ -14,11 +14,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         throw new ApiError(404, "channel not found");
     }
 
-    const alreadySubscribed = await Subscription.findOneAndDelete({
+    const alreadySubscribed = await Subscription.findOneAndDelete(
+        {
         channel: channel?._id,
         subscriber: req?.user?._id,
-    });
-
+        }
+).select("-__v");
     if (alreadySubscribed) {
         return res
             .status(200)
@@ -53,16 +54,17 @@ const toggleSubscription = asyncHandler(async (req, res) => {
             )
         );
 });
-// above functionality is working fine
 
-const getUserChannelSubscribers = asyncHandler(async (req, res) => {
+
+// controller to return subscriber list of a channel
+const subscriberListOfChannel = asyncHandler(async (req, res) => {
     const { subscriberId } = req?.params;
     const channel = await User.findOne({ username: subscriberId || "" });
 
     if (!channel) {
         throw new ApiError(
-                404,
-                `no channel found with this username ${subscriberId}`
+            404,
+            `no channel found with this username ${subscriberId}`
         );
     }
 
@@ -82,7 +84,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                     {
                         $project: {
                             username: 1,
-                            avatar : 1
+                            avatar: 1,
                         },
                     },
                 ],
@@ -94,13 +96,13 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
             },
         },
         {
-            $project : {
-                subscriber : 1,
-                channel : 1,
-                subscribed : 1,
-                _id : 0
-            }
-        }
+            $project: {
+                subscriber: 1,
+                channel: 1,
+                subscribed: 1,
+                _id: 0,
+            },
+        },
     ]);
 
     if (!subscriberList?.length > 0) {
@@ -120,63 +122,62 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
             )
         );
 });
-// above functionality is working fine
 
-const getSubscribedChannel = asyncHandler(async (req, res) => {
-    const {channelId} = req?.params;
-    
-    const channel = await User.findOne({username : channelId})
+
+// controller to return channel list to which user has subscribed
+const subscribedChannelListOfUser = asyncHandler(async (req, res) => {
+    const { channelId } = req?.params;
+
+    const channel = await User.findOne({ username: channelId });
 
     if (!channel) {
-        throw new ApiError(400, `No channel found this username ${channel}`)
+        throw new ApiError(400, `No channel found this username ${channel}`);
     }
 
-    const subscribedList = await Subscription.aggregate(
-        [
-            {
-                $match : {
-                    subscriber : channel._id
-                }
+    const subscribedList = await Subscription.aggregate([
+        {
+            $match: {
+                subscriber: channel._id,
             },
-            {
-                $lookup : {
-                    from : "users",
-                    localField : "channel",
-                    foreignField : "_id",
-                    as : "channel",
-                    pipeline : [
-                        {
-                            $project : {
-                                username : 1,
-                                avatar : 1
-                            }
-                        }
-                    ]
-                }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "channel",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1,
+                        },
+                    },
+                ],
             },
-            {
-                $set : {
-                    channel : {$first : "$channel"}
-                }
+        },
+        {
+            $set: {
+                channel: { $first: "$channel" },
             },
-            {
-                $project : {
-                    _id : 0,
-                    channel : 1
-                }
-            }
-        ]
-    )
+        },
+        {
+            $project: {
+                _id: 0,
+                channel: 1,
+            },
+        },
+    ]);
 
     return res
-            .status(200)
-            .json(
-                new ApiResponse(
-                    200,
-                    subscribedList,
-                    "user subscribed channel is fetched successfully"
-                )
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                subscribedList,
+                "user subscribed channel is fetched successfully"
             )
+        );
 });
 
 const test = asyncHandler(async (req, res) => {
@@ -191,7 +192,7 @@ const test = asyncHandler(async (req, res) => {
 });
 export {
     toggleSubscription,
-    getUserChannelSubscribers,
-    getSubscribedChannel,
+    subscriberListOfChannel,
+    subscribedChannelListOfUser,
     test,
 };
