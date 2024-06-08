@@ -123,8 +123,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const { playlistId, videoId } = req.params;
-
-    if (!isValidObjectId(playlistId) || !isValidObjectId(video)) {
+    if (!isValidObjectId(playlistId) || !isValidObjectId(videoId)) {
         throw new ApiError(400, "Playlist id or Video id is not valid");
     }
 
@@ -139,13 +138,12 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
     }
 
     const existingPlaylist = await Playlist.findById(playlistId);
-
     if (!existingPlaylist) {
         throw new ApiError(
             400,
             "Playlist not found please enter the valid playlist id"
         );
-    } else if (existingPlaylist?._id !== req.user._id) {
+    } else if (existingPlaylist?.owner?.toString() !== req.user._id.toString()) {
         throw new ApiError(
             400,
             "you are not authorized to update this playlist"
@@ -181,7 +179,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 
     if (!existingPlaylist) {
         throw new ApiError(404, "Playlist not found");
-    } else if (existingPlaylist?.owner !== req?.user?._id) {
+    } else if (existingPlaylist?.owner.toString() !== req?.user?._id?.toString()) {
         throw new ApiError(
             400,
             "you are not autorized to update this playlist"
@@ -197,9 +195,9 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
         playlistId,
         {
-            $pull: {
-                vidoes: video._id || " ",
-            },
+           $pull : {
+            videos : video._id
+           }
         },
         {
             new: true,
@@ -211,7 +209,7 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                playlistId,
+                updatedPlaylist,
                 "Video has been removed from the playlist"
             )
         );
@@ -220,9 +218,9 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 const getUserPlaylists = asyncHandler(async (req,res) => {
     const {userId} = req.params
     if (!isValidObjectId(userId)) {
-        throw new ApiError(400, "object id is not valid")
+        throw new ApiError(400, "user id is not valid")
     }
-    else if (userId !== req?.user?._id.toString()) {
+    else if (userId !== req?.user?._id?.toString()) {
         throw new ApiError(400, "you are not autorize to access this playlist")
     }
 
@@ -235,21 +233,67 @@ const getUserPlaylists = asyncHandler(async (req,res) => {
             },
             {
                 $lookup : {
-                    from : "Video",
+                    from : "videos",
                     localField : "videos",
                     foreignField : "_id",
-                    as : "video"
+                    as : "videos",
+                    pipeline : [
+                        {
+                            $lookup : {
+                                from : "users",
+                                localField : "owner",
+                                foreignField : "_id",
+                                as : "videoOwner",
+                                pipeline : [
+                                    {
+                                        $project : {
+                                            username : 1,
+                                            _id : 0
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            $set : {
+                                videoOwner : {$first : "$videoOwner"},
+                            }
+                        },
+                        {
+                            $set : {
+                                videoOwner : "$videoOwner.username"
+                            }
+                        },
+                        {
+                            $project : {
+                                thumbnail : 1,
+                                title : 1,
+                                duration : 1,
+                                views : 1,
+                                videoOwner : 1,
+                                createdAt : 1,
+                                videoOwner : 1
+                            }
+                            
+                        }
+                    ]
+                }
+            },
+            {
+                $project : {
+                    __v : 0,
+                    updatedAt : 0
                 }
             }
+
         ]
     );
-
     return res 
             .status(200)
             .json(new ApiResponse(
                 200,
                 playlists,
-                `Playlist fetched successfully for this user ${req?.username}`
+                `Playlist fetched successfully for this user ${req?.user?.username}`
             ))
 })
 export {
