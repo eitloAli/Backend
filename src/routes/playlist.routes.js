@@ -17,14 +17,16 @@ playlistRouter.route("/").post(createPlaylist);
 
 playlistRouter
     .route("/:playlistId")
-    .get(getPlaylistById)
-    .patch(updatePlaylist)
-    .delete(deletePlaylist);
+        .get(getPlaylistById)
+        .patch(updatePlaylist)
+        .delete(deletePlaylist);
 
-playlistRouter.route("/add/:videoId/:playlistId").patch(addVideoToPlaylist);
+playlistRouter
+    .route("/add/:videoId/:playlistId")
+        .patch(addVideoToPlaylist);
 playlistRouter
     .route("/remove/:videoId/:playlistId")
-    .patch(removeVideoFromPlaylist);
+        .patch(removeVideoFromPlaylist);
 
 playlistRouter.route("/user/:userId").get(getUserPlaylists);
 
