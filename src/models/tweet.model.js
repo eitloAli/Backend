@@ -8,7 +8,7 @@ const tweetSchema = new Schema(
             required : [true, "Owner User Id is required"]
         },
         tweet : {
-            Type : String,
+            type : String,
             required : [true, "tweet content is required"]
         },
     }, 
