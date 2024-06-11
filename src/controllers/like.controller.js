@@ -176,7 +176,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                 from : "videos",
                 localField : "video",
                 foreignField : "_id",
-                as : "PlaylistVideo",
+                as : "playlistVideo",
                 pipeline : [
                     {
                         $lookup : {
@@ -214,6 +214,11 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                         }
                     }
                 ]
+            }
+        },
+        {
+            $set : {
+                playlistVideo : {$first : "$playlistVideo"}
             }
         },
         {
