@@ -7,9 +7,9 @@ import { Video } from "../models/video.model.js";
 
 const getVideoComments = asyncHandler(async (req,res) => {
     const {videoId} = req.params
-    const {page = 1, limit = 10, pagination = true} = req.query
+    let {page = 1, limit = 10, pagination = true} = req.query
 
-    if (isValidObjectId(videoId)) {
+    if (!isValidObjectId(videoId)) {
         throw new ApiError(404, "Video id is not valid")
     }
 
@@ -51,14 +51,20 @@ const getVideoComments = asyncHandler(async (req,res) => {
                 $set : {
                     owner : "$owner.username"
                 }
+            },
+            {
+                $project : {
+                    video : 0,
+                    updatedAt : 0,
+                    __v : 0
+                }
             }
         ]
     )
-    
     const option = {
         page,
         limit,
-        pagination,
+        pagination : pagination === "false" ? false : true,
         sort : {
             createdAt : -1
         }
@@ -73,6 +79,7 @@ const getVideoComments = asyncHandler(async (req,res) => {
                 {
                     ...paginatedComments,
                     comments : paginatedComments.docs,
+                    totalComments : paginatedComments.totalDocs,
                     docs : undefined
                 }
             ))
@@ -81,7 +88,6 @@ const getVideoComments = asyncHandler(async (req,res) => {
 const addComment = asyncHandler(async (req, res) => {
     const {videoId}  = req.params
     const {comment} = req.body
-    console.log(req);
     if (!isValidObjectId(videoId)) {
         throw new ApiError(400, "Video id is not valid")
     } 
@@ -125,7 +131,7 @@ const updateComment = asyncHandler(async (req,res) => {
         throw new ApiError(400, "Comment content is required")
     }
 
-    const commentUpdated = Comment.findByIdAndUpdate(
+    const commentUpdated = await Comment.findByIdAndUpdate(
         commentId,
         {
             $set : {

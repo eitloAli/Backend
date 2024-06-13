@@ -4,11 +4,12 @@ import { Tweet } from "../models/tweet.model.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Like } from "../models/like.model.js";
 
 const createTweet = asyncHandler(async (req, res) => {
     const { tweet } = req.body;
 
-    if (!tweet?.trim()) {
+    if (!tweet) {
         throw new ApiError(400, "Tweet is required");
     }
 
@@ -20,12 +21,12 @@ const createTweet = asyncHandler(async (req, res) => {
     if (!postedTweet) {
         throw new ApiError(
             500,
-            "something went wrong from our side while uploading tweet"
+            "something went wrong while uplading this tweet"
         );
     }
 
     return res
-        .status(200)
+        .status(201)
         .json(
             new ApiResponse(
                 200,
@@ -46,22 +47,19 @@ const getUserTweets = asyncHandler(async (req, res) => {
     const allTweets = await Tweet.aggregate([
         {
             $match: {
-                owner: req?.user?._id || "",
-            },
+                owner: req?.user?._id,
+            }
         },
         {
             $lookup : {
-                from : "Likes",
+                from : "likes",
                 localField : "_id",
                 foreignField : "tweet",
-                as : "like",
+                as : "likes",
                 pipeline : [
                     {
-                        $addFields : {
-                            tweetLikes : {$cout : "$likes"}
-                        },
                         $project : {
-                            tweetLikes : 1,
+                            _id : 1
                         }
                     }
                 ]
@@ -69,25 +67,16 @@ const getUserTweets = asyncHandler(async (req, res) => {
         },
         {
             $set : {
-                like : {$first : "$like"}
-            },
-            $set : {
-                likes : "$like.tweetLikes"
+                likes : {$size : "$likes"}
             }
         },
+        {
+            $project : {
+                updatedAt : 0,
+                __v : 0,
 
-        {
-            $sort: {
-                createdAt: -1,
-            },
-        },
-        {
-            $project: {
-                tweet: 1,
-                owner: 1,
-                likes : 1
-            },
-        },
+            }
+        }
     ]);
 
     if (!allTweets?.length > 0) {
@@ -100,7 +89,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
             new ApiResponse(
                 200,
                 allTweets,
-                "Users All tweet has been fetched successfully"
+                "User All tweet has been fetched successfully"
             )
         );
 });
@@ -123,7 +112,7 @@ const updateTweet = asyncHandler(async (req, res) => {
         tweetId,
         {
             $set: {
-                content: tweet,
+                tweet
             },
         },
         {
@@ -134,7 +123,7 @@ const updateTweet = asyncHandler(async (req, res) => {
     if (!tweetUpdated) {
         throw new ApiError(
             404,
-            "No tweet found in database, must be delete or invalid tweet id"
+            "No tweet found in database, must be deleted"
         );
     }
 

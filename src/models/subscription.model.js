@@ -4,12 +4,14 @@ const SubsSchema = new Schema(
     {   
         subscriber : {
             type : Schema.Types.ObjectId,
-            ref : "User"
+            ref : "User",
+            required : [true, "subscriber id is required for subscribing a channel"]
         },
         
         channel : {
             type : Schema.Types.ObjectId,
-            ref : "User"
+            ref : "User",
+            required : [true, "Channel id is required for subscribing a channel"]
         }
     },
     {

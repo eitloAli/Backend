@@ -10,7 +10,7 @@ commentRouter
             .post(addComment)
 
 commentRouter
-        .route("/:commentId")
+        .route("/c/:commentId")
             .patch(updateComment)
             .delete(deleteComment)
 
