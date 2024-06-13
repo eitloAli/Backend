@@ -197,7 +197,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
 });
 
 const getChannelVideos = asyncHandler(async (req,res) => {
-    const {page = 1, limit = 10, pagination = false} = req.query
+    const {page = 1, limit = 10, pagination = true} = req.query
 
     const option = {
         page,
