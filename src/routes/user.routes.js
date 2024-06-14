@@ -47,7 +47,7 @@ userRouter.route("/update-cover-image").patch(verifyJWT, upload.single("cover"),
 
 
 userRouter.route("/c/:username").get(verifyJWT, getUserChanneDetails)
-userRouter.route("/user-watch-history").post(verifyJWT, getWatchedHistory)
+userRouter.route("/user-watch-history").get(verifyJWT, getWatchedHistory)
 
 
 userRouter.route("/subscribe").post(verifyJWT, subscribe)

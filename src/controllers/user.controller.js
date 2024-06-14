@@ -199,7 +199,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         .status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, {user}, "User logout Successfully"));
+        .json(new ApiResponse(200, { user }, "User logout Successfully"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -285,7 +285,7 @@ const updateCurrentPassword = asyncHandler(async (req, res) => {
         );
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req?.user?._id);
 
     if (!user) {
         throw new ApiError(400, "Something went wrong while finding your user");
@@ -298,7 +298,7 @@ const updateCurrentPassword = asyncHandler(async (req, res) => {
     }
 
     user.password = newPassword;
-    await user.save();
+    await user.save({ validateModifiedOnly : true});
 
     return res
         .status(200)
@@ -317,7 +317,7 @@ const updateAvatarImage = asyncHandler(async (req, res) => {
     }
 
     const uploadedAvatar = await uploadOnCloudinary(req.file?.path);
-    await deleteCloudinaryImage(req.user.avatar);
+    await deleteCloudinaryImage(req?.user?.avatar || " ");
 
     const userUpdated = await User.findByIdAndUpdate(
         req.user._id,
@@ -348,13 +348,13 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     }
 
     const uploadedCoverImage = await uploadOnCloudinary(req?.file?.path);
-    await deleteCloudinaryImage(req.user.cover);
+    await deleteCloudinaryImage(req?.user?.coverImage || " ");
 
     const userUpdated = await User.findByIdAndUpdate(
-        req.user._id,
+        req?.user?._id,
         {
             $set: {
-                coverImage: uploadedCoverImage.url,
+                coverImage: uploadedCoverImage?.url || "Url not found",
             },
         },
         {
@@ -362,14 +362,13 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         }
     ).select("-password -refreshToken");
 
-    console.log("cover image uploaded");
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
                 userUpdated,
-                "Cover image successfully uploaded"
+                "Cover image successfully updated"
             )
         );
 });
@@ -392,6 +391,13 @@ const getUserChanneDetails = asyncHandler(async (req, res) => {
                 localField: "_id",
                 foreignField: "channel",
                 as: "subscribers",
+                pipeline: [
+                    {
+                        $project: {
+                            subscriber: 1,
+                        },
+                    },
+                ],
             },
         },
         {
@@ -400,10 +406,17 @@ const getUserChanneDetails = asyncHandler(async (req, res) => {
                 localField: "_id",
                 foreignField: "subscriber",
                 as: "subscribeTo",
+                pipeline: [
+                    {
+                        $project: {
+                            _id: 1,
+                        },
+                    },
+                ],
             },
         },
         {
-            $addFields: {
+            $set: {
                 subscribersCount: {
                     $size: "$subscribers",
                 },
@@ -421,15 +434,13 @@ const getUserChanneDetails = asyncHandler(async (req, res) => {
         },
         {
             $project: {
-                fullName: 1,
-                username: 1,
-                subscribersCount: 1,
-                subscribedChannelsCount: 1,
-                isSubscribed: 1,
-                avatar: 1,
-                coverImage: 1,
-                email: 1,
-                createdAt: 1,
+                watchedHistory: 0,
+                password: 0,
+                updatedAt: 0,
+                __v: 0,
+                refreshToken: 0,
+                subscribers: 0,
+                subscribeTo: 0,
             },
         },
     ]);
@@ -441,14 +452,20 @@ const getUserChanneDetails = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(new ApiResponse(200, channel[0], "channel fetched successfully"));
+        .json(
+            new ApiResponse(
+                200,
+                channel[0],
+                "channel details fetched successfully"
+            )
+        );
 });
 
 const getWatchedHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match: {
-                _id: req.user_id,
+                _id: req.user._id,
             },
         },
         {
@@ -460,34 +477,54 @@ const getWatchedHistory = asyncHandler(async (req, res) => {
                 pipeline: [
                     {
                         $lookup: {
-                            from: "User",
+                            from: "users",
                             localField: "owner",
                             foreignField: "_id",
                             as: "owner",
                             pipeline: [
                                 {
                                     $project: {
-                                        fullName: 1,
                                         username: 1,
-                                        avatar: 1,
                                     },
                                 },
                             ],
                         },
                     },
                     {
-                        $addFields: {
-                            owner: {
-                                $first: "$owner",
-                            },
+                        $set: {
+                            owner: { $first: "$owner" },
+                        },
+                    },
+                    {
+                        $set: {
+                            owner: "$owner.username",
+                        },
+                    },
+                    {
+                        $project: {
+                            updatedAt: 0,
+                            description: 0,
+                            isPublished: 0,
+                            videoFile: 0,
+                            __v: 0,
                         },
                     },
                 ],
             },
         },
+        {
+            $project: {
+                _id: 0,
+                watchHistory: 1,
+            },
+        },
     ]);
     res.status(200).json(
-        new ApiResponse(200, user, "User watched history fetched successfully")
+        new ApiResponse(
+            200,
+            user[0],
+            "User watched history fetched successfully"
+        )
     );
 });
 

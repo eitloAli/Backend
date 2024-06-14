@@ -28,7 +28,7 @@ export const uploadOnCloudinary = async (localFilePath) => {
 
 export const deleteCloudinaryImage = async (url) => {
     try {
-        const imageUrl = url?.split("/")[7]?.split(".")[0]
+        const imageUrl = url?.split("/")?.[7]?.split(".")?.[0]
         const deletedImage =  await cloudinary.api.delete_resources(
             [imageUrl],
             {
